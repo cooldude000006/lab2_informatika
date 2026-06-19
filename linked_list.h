@@ -40,6 +40,11 @@ namespace lab2
             {
                 throw InvalidOperationException("Размер не может быть отрицательным");
             }
+            if (items == nullptr && count > 0)
+            {
+                throw InvalidOperationException(
+                    "Указатель items равен nullptr при положительном количестве элементов");
+            }
             for (int i=0;i<count;++i)
             {
                 Append(items[i]);
@@ -153,7 +158,7 @@ namespace lab2
 
         void InsertAt(const T& item, int index)
         {
-            if (index < 0 || index > count_)
+            if (index < 0 || index >= count_)
             {
                 throw IndexOutOfRangeException(index, count_, "LinkedList::InsertAt");
             }

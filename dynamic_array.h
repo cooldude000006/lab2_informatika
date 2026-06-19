@@ -29,6 +29,11 @@ namespace lab2
             {
                 throw InvalidOperationException("Размер массива не может быть отрицательным");
             }
+            if (items == nullptr && count > 0)
+            {
+                throw InvalidOperationException(
+                    "Указатель items равен nullptr при положительном количистве элементов");
+            }
             if (count == 0)
             {
                 data_ = nullptr;

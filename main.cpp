@@ -117,7 +117,8 @@ void show_menu() {
     cout << " 2. Map / Where / Reduce операции                           \n";
     cout << " 3. BitSequence (побитовые операции)                        \n";
     cout << " 4. Исключения и Try-семантика (Option<T>)                  \n";
-    cout << " 5. Запустить модульные тесты (Google Test)                 \n";
+    cout << " 5. Создать последовательность и выполнить операции         \n";
+    cout << " 6. Информация о запуске модульных тестов                   \n";
     cout << " 0. Выход                                                   \n";
     cout << "----------------------------------------------------------\n";
     cout << "Выберите пункт меню: \n";
@@ -141,7 +142,7 @@ vector<int> input_int_array()
     clear_input();
 
     vector<int> data(count);
-    cout << "Введите" << count << "целых чисел через пробел: \n";
+    cout << "Введите"  << count <<  "целых чисел через пробел: \n";
     for (int i=0; i<count; ++i)
     {
         while (!(cin >> data[i]))
@@ -198,7 +199,7 @@ lab2::Sequence<int>* create_sequence_interactive()
     return seq;
 }
 
-void sequence_operations_menu(lab2::Sequence<int>* seq) {
+void sequence_operations_menu(lab2::Sequence<int>*& seq) {
     if (!seq) {
         cout << "Последовательность не инициализирована!\n";
         return;
@@ -226,53 +227,79 @@ void sequence_operations_menu(lab2::Sequence<int>* seq) {
 
         try {
             switch (choice) {
-                case 1: {
+                case 1:
+                {
                     int idx;
-                    cout << "Введите индекс (0.." << seq->GetLength()-1 << "): ";
-                    cin >> idx;
+                    cout << "Введите индекс (0.." << seq->GetLength() - 1 << "): ";
+                    if (!(cin >> idx))
+                    {
+                        clear_input();
+                        cout << "Ошибка: необходимо ввести целое число.\n";
+                        break;
+                    }
                     clear_input();
                     cout << "seq[" << idx << "] = " << seq->Get(idx) << "\n";
                     break;
                 }
-                case 2: {
+                case 2:
+                {
                     int val;
                     cout << "Введите значение для добавления: ";
-                    cin >> val;
-                    clear_input();
-                    auto* newSeq = seq->Append(val);
-                    // Для mutable: newSeq == seq, для immutable: newSeq — новый объект
-                    if (newSeq != seq) {
-                        cout << "Создана новая последовательность (immutable)\n";
-                        delete seq;  // Освобождаем старую
-                        // В реальном коде здесь нужно передать newSeq обратно,
-                        // но для демо просто покажем результат:
-                        cout << "Результат: " << *newSeq << "\n";
-                    } else {
-                        cout << "Элемент добавлен (mutable)\n";
+                    if (!(cin >> val))
+                    {
+                        clear_input();
+                        cout << "Ошибка: необходимо ввести целое число.\n";
+                        break;
                     }
+                    clear_input();
+                    lab2::Sequence<int>* newSeq = seq->Append(val);
+                    // Для immutable-последовательности создаётся новый объект.
+                    if (newSeq != seq)
+                    {
+                        delete seq;
+                        seq = newSeq;
+
+                        cout << "Создана новая последовательность (immutable)\n";
+                        cout << "Результат: " << *seq << "\n";
+                    }
+                    else
+                    {
+                        cout << "Элемент добавлен (mutable)\n";
+                        cout << "Результат: " << *seq << "\n";
+                    }
+
                     break;
                 }
-                case 3: {
+                case 3:
+                {
                     auto* result = seq->Map([](int x) { return x * 2; });
                     cout << "Map(x*2): " << *result << "\n";
                     delete result;
                     break;
                 }
-                case 4: {
+                case 4:
+                {
                     auto* result = seq->Where([](int x) { return x > 5; });
                     cout << "Where(x>5): " << *result << "\n";
                     delete result;
                     break;
                 }
-                case 5: {
+                case 5:
+                {
                     int sum = seq->Reduce([](int acc, int x) { return acc + x; }, 0);
                     cout << "Reduce(сумма) = " << sum << "\n";
                     break;
                 }
-                case 6: {
+                case 6:
+                {
                     int idx;
                     cout << "Введите индекс для TryGet: ";
-                    cin >> idx;
+                    if (!(cin >> idx))
+                    {
+                        clear_input();
+                        cout << "Ошибка: необходимо ввести целое число.\n";
+                        break;
+                    }
                     clear_input();
                     auto opt = seq->TryGet(idx);
                     if (opt) {

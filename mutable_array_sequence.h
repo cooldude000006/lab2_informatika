@@ -27,6 +27,25 @@ namespace  lab2
         {
         }
 
+        MutableArraySequence(const MutableArraySequence<T>& other)
+            : items_(new DynamicArray<T>(*other.items_))
+        {
+        }
+
+        MutableArraySequence<T>& operator=(
+            const MutableArraySequence<T>& other)
+        {
+            if (this != &other)
+            {
+                DynamicArray<T>* newItems =
+                    new DynamicArray<T>(*other.items_);
+                delete items_;
+                items_ = newItems;
+            }
+            return *this;
+        }
+
+
         ~MutableArraySequence() override
         {
             delete items_;
@@ -98,13 +117,9 @@ namespace  lab2
 
         Sequence<T>* InsertAt(const T& item, int index) override
         {
-            if (index < 0  || index > items_->GetSize())
+            if (index < 0  || index >= items_->GetSize())
             {
                 throw IndexOutOfRangeException(index,items_->GetSize(), "MutableArraySequence::InsertAt");
-            }
-            if (index == items_->GetSize())
-            {
-                return Append(item);
             }
             if (index == 0)
             {

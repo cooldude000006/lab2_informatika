@@ -27,6 +27,19 @@ namespace lab2
         {
         }
 
+        MutableListSequence<T>& operator=(
+            const MutableListSequence<T>& other)
+        {
+            if (this != &other)
+            {
+                LinkedList<T>* newList =
+                    new LinkedList<T>(*other.list_);
+                delete list_;
+                list_ = newList;
+            }
+            return *this;
+        }
+
         ~MutableListSequence() override
         {
             delete list_;

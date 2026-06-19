@@ -60,27 +60,37 @@ namespace lab2
         virtual Sequence<T>* Concat(Sequence<T>* list) const = 0;//сцепить с другой последовательностью
 
         //map-reduce
-        template<typename Func> //применить функцию к каждому элементу
+        template<typename Func> // применить функцию к каждому элементу
         Sequence<T>* Map(Func f) const
         {
             Sequence<T>* result = CreateEmpty();
-            for (int i = 0; i<GetLength(); ++i)
+            for (int i = 0; i < GetLength(); ++i)
             {
-                result->Append(f(Get(i)));
+                Sequence<T>* next = result->Append(f(Get(i)));
+                if (next != result)
+                {
+                    delete result;
+                    result = next;
+                }
             }
-            return result; // Указатель на новую последовательность (владелец должен вызвать delete)
+            return result;
         }
 
-        template<typename Predicate> //отфильтровать элементы по предикату
+        template<typename Predicate> // отфильтровать элементы по предикату
         Sequence<T>* Where(Predicate pred) const
         {
             Sequence<T>* result = CreateEmpty();
-            for (int i=0; i<GetLength(); ++i)
+            for (int i = 0; i < GetLength(); ++i)
             {
                 T item = Get(i);
                 if (pred(item))
                 {
-                    result->Append(item);
+                    Sequence<T>* next = result->Append(item);
+                    if (next != result)
+                    {
+                        delete result;
+                        result = next;
+                    }
                 }
             }
             return result;

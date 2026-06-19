@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include <locale>
-//
+
 #include "dynamic_array.h"
 #include "linked_list.h"
 #include "mutable_array_sequence.h"
@@ -10,6 +10,10 @@
 #include "immutable_list_sequence.h"
 #include "bit_sequence.h"
 #include "option.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 //для bitsequence
 TEST(BitSequenceTest, BasicConstruction)
@@ -108,7 +112,18 @@ TEST(BitSequenceTest, NullptrException)
     EXPECT_THROW(a.And(nullptr), lab2::InvalidOperationException);
 }
 
-
+TEST(BitSequenceTest, NullptrWithPositiveCountThrows)
+{
+    EXPECT_THROW(
+        {
+            lab2::BitSequence sequence(
+                static_cast<bool*>(nullptr),
+                3
+            );
+        },
+        lab2::InvalidOperationException
+    );
+}
 
 // тесты для DynamicArray
 TEST(DynamicArrayTest, ConstructorFromCArray)
@@ -220,6 +235,15 @@ TEST(DynamicArrayTest, IsEmptyAndClear)
     EXPECT_EQ(arr.GetSize(), 0);
 }
 
+TEST(DynamicArrayTest, NullptrWithPositiveCountThrows)
+{
+    EXPECT_THROW(
+        {
+            lab2::DynamicArray<int> array(nullptr, 3);
+        },
+        lab2::InvalidOperationException
+    );
+}
 
 // тесты для LinkedList
 TEST(LinkedListTest, BasicOperations)
@@ -316,6 +340,32 @@ TEST(LinkedListTest, CopyConstructor)
     EXPECT_EQ(copy.GetLength(), 2);  // Копия не изменилась
 }
 
+TEST(LinkedListTest, NullptrWithPositiveCountThrows)
+{
+    EXPECT_THROW(
+        {
+            lab2::LinkedList<int> list(nullptr, 3);
+        },
+        lab2::InvalidOperationException
+    );
+}
+
+TEST(LinkedListTest, InsertAtIndexEqualToLengthThrows)
+{
+    int items[] = {1, 2, 3};
+    lab2::LinkedList<int> list(items, 3);
+
+    EXPECT_THROW(
+        list.InsertAt(4, list.GetLength()),
+        lab2::IndexOutOfRangeException
+    );
+
+    // После исключения список не должен измениться.
+    EXPECT_EQ(list.GetLength(), 3);
+    EXPECT_EQ(list.GetFirst(), 1);
+    EXPECT_EQ(list.GetLast(), 3);
+}
+
 // тесты полиморфизма Sequence
 TEST(SequencePolymorphismTest, ArraySequenceViaBasePointer)
 {
@@ -358,6 +408,33 @@ TEST(SequencePolymorphismTest, MapViaBasePointer)
     delete result;
 }
 
+TEST(SequencePolymorphismTest, MapWorksForImmutableArraySequence)
+{
+    int src[] = {1, 2, 3, 4};
+
+    lab2::Sequence<int>* seq =
+        new lab2::ImmutableArraySequence<int>(src, 4);
+
+    lab2::Sequence<int>* result =
+        seq->Map([](int x) { return x * 10; });
+
+    ASSERT_NE(result, nullptr);
+
+    EXPECT_EQ(result->GetLength(), 4);
+    EXPECT_EQ(result->Get(0), 10);
+    EXPECT_EQ(result->Get(1), 20);
+    EXPECT_EQ(result->Get(2), 30);
+    EXPECT_EQ(result->Get(3), 40);
+
+    // Исходная immutable-последовательность не должна измениться.
+    EXPECT_EQ(seq->GetLength(), 4);
+    EXPECT_EQ(seq->Get(0), 1);
+    EXPECT_EQ(seq->Get(3), 4);
+
+    delete result;
+    delete seq;
+}
+
 TEST(SequencePolymorphismTest, WhereViaBasePointer)
 {
     int src[] = {1, 2, 3, 4, 5, 6};
@@ -374,6 +451,32 @@ TEST(SequencePolymorphismTest, WhereViaBasePointer)
     delete evens;
 }
 
+TEST(SequencePolymorphismTest, WhereWorksForImmutableListSequence)
+{
+    int src[] = {1, 2, 3, 4, 5, 6};
+
+    lab2::Sequence<int>* seq =
+        new lab2::ImmutableListSequence<int>(src, 6);
+
+    lab2::Sequence<int>* result =
+        seq->Where([](int x) { return x > 3; });
+
+    ASSERT_NE(result, nullptr);
+
+    EXPECT_EQ(result->GetLength(), 3);
+    EXPECT_EQ(result->Get(0), 4);
+    EXPECT_EQ(result->Get(1), 5);
+    EXPECT_EQ(result->Get(2), 6);
+
+    // Исходная immutable-последовательность не должна измениться.
+    EXPECT_EQ(seq->GetLength(), 6);
+    EXPECT_EQ(seq->GetFirst(), 1);
+    EXPECT_EQ(seq->GetLast(), 6);
+
+    delete result;
+    delete seq;
+}
+
 TEST(SequencePolymorphismTest, ReduceViaBasePointer)
 {
     int src[] = {1, 2, 3, 4, 5};
@@ -387,6 +490,229 @@ TEST(SequencePolymorphismTest, ReduceViaBasePointer)
     delete seq;
 }
 
+//MutableArraySequence
+//изм эл копии не меняет оригинал и доб эл не меняет длину оригинала
+TEST(MutableArraySequenceTest, CopyConstructorCreatesIndependentCopy)
+{
+    int source[] = {1, 2, 3};
+
+    lab2::MutableArraySequence<int> original(source, 3);
+    lab2::MutableArraySequence<int> copy(original);
+
+    copy[0] = 999;
+    copy.Append(4);
+
+    EXPECT_EQ(original.GetLength(), 3);
+    EXPECT_EQ(original.Get(0), 1);
+    EXPECT_EQ(original.Get(1), 2);
+    EXPECT_EQ(original.Get(2), 3);
+
+    EXPECT_EQ(copy.GetLength(), 4);
+    EXPECT_EQ(copy.Get(0), 999);
+    EXPECT_EQ(copy.Get(1), 2);
+    EXPECT_EQ(copy.Get(2), 3);
+    EXPECT_EQ(copy.Get(3), 4);
+}
+
+//проверка concat
+TEST(MutableArraySequenceTest, ConcatDoesNotModifyOriginal)
+{
+    int firstItems[] = {1, 2, 3};
+    int secondItems[] = {4, 5};
+
+    lab2::MutableArraySequence<int> first(firstItems, 3);
+    lab2::MutableArraySequence<int> second(secondItems, 2);
+
+    lab2::Sequence<int>* result = first.Concat(&second);
+
+    ASSERT_NE(result, nullptr);
+
+    EXPECT_EQ(first.GetLength(), 3);
+    EXPECT_EQ(first.Get(0), 1);
+    EXPECT_EQ(first.Get(1), 2);
+    EXPECT_EQ(first.Get(2), 3);
+
+    EXPECT_EQ(result->GetLength(), 5);
+    EXPECT_EQ(result->Get(0), 1);
+    EXPECT_EQ(result->Get(1), 2);
+    EXPECT_EQ(result->Get(2), 3);
+    EXPECT_EQ(result->Get(3), 4);
+    EXPECT_EQ(result->Get(4), 5);
+
+    delete result;
+
+    // После удаления результата исходный объект должен оставаться рабочим.
+    EXPECT_EQ(first.GetLength(), 3);
+    EXPECT_EQ(first.GetFirst(), 1);
+    EXPECT_EQ(first.GetLast(), 3);
+}
+
+TEST(MutableArraySequenceTest, AssignmentCreatesIndependentCopy)
+{
+    int sourceItems[] = {1, 2, 3};
+    int targetItems[] = {10, 20};
+
+    lab2::MutableArraySequence<int> source(sourceItems, 3);
+    lab2::MutableArraySequence<int> target(targetItems, 2);
+
+    target = source;
+
+    source[0] = 999;
+    source.Append(4);
+
+    EXPECT_EQ(source.GetLength(), 4);
+    EXPECT_EQ(source.Get(0), 999);
+
+    EXPECT_EQ(target.GetLength(), 3);
+    EXPECT_EQ(target.Get(0), 1);
+    EXPECT_EQ(target.Get(1), 2);
+    EXPECT_EQ(target.Get(2), 3);
+
+    target = target;
+
+    EXPECT_EQ(target.GetLength(), 3);
+    EXPECT_EQ(target.GetFirst(), 1);
+    EXPECT_EQ(target.GetLast(), 3);
+}
+
+TEST(MutableArraySequenceTest, InsertAtIndexEqualToLengthThrows)
+{
+    int items[] = {1, 2, 3};
+    lab2::MutableArraySequence<int> sequence(items, 3);
+
+    EXPECT_THROW(
+        sequence.InsertAt(4, sequence.GetLength()),
+        lab2::IndexOutOfRangeException
+    );
+
+    // После исключения последовательность не должна измениться.
+    EXPECT_EQ(sequence.GetLength(), 3);
+    EXPECT_EQ(sequence.Get(0), 1);
+    EXPECT_EQ(sequence.Get(1), 2);
+    EXPECT_EQ(sequence.Get(2), 3);
+}
+
+TEST(MutableArraySequenceTest, InsertAtLastValidIndexWorks)
+{
+    int items[] = {1, 2, 3};
+    lab2::MutableArraySequence<int> sequence(items, 3);
+
+    // Индекс 2 допустим, поскольку длина до вставки равна 3.
+    sequence.InsertAt(9, 2);
+
+    EXPECT_EQ(sequence.GetLength(), 4);
+    EXPECT_EQ(sequence.Get(0), 1);
+    EXPECT_EQ(sequence.Get(1), 2);
+    EXPECT_EQ(sequence.Get(2), 9);
+    EXPECT_EQ(sequence.Get(3), 3);
+}
+
+//MutableListSequence
+TEST(MutableListSequenceTest, AssignmentCreatesIndependentCopy)
+{
+    int sourceItems[] = {1, 2, 3};
+    int targetItems[] = {10, 20};
+
+    lab2::MutableListSequence<int> source(sourceItems, 3);
+    lab2::MutableListSequence<int> target(targetItems, 2);
+
+    target = source;
+
+    source.Prepend(999);
+    source.Append(4);
+
+    EXPECT_EQ(source.GetLength(), 5);
+    EXPECT_EQ(source.GetFirst(), 999);
+    EXPECT_EQ(source.GetLast(), 4);
+
+    EXPECT_EQ(target.GetLength(), 3);
+    EXPECT_EQ(target.GetFirst(), 1);
+    EXPECT_EQ(target.Get(1), 2);
+    EXPECT_EQ(target.GetLast(), 3);
+
+    target = target;
+
+    EXPECT_EQ(target.GetLength(), 3);
+    EXPECT_EQ(target.GetFirst(), 1);
+    EXPECT_EQ(target.GetLast(), 3);
+}
+
+//ImmutableArraySequence
+TEST(ImmutableArraySequenceTest, AssignmentCreatesIndependentCopy)
+{
+    int initialItems[] = {10, 20};
+
+    lab2::ImmutableArraySequence<int> target(initialItems, 2);
+
+    {
+        int sourceItems[] = {1, 2, 3};
+        lab2::ImmutableArraySequence<int> source(sourceItems, 3);
+
+        target = source;
+
+        EXPECT_EQ(target.GetLength(), 3);
+        EXPECT_EQ(target.GetFirst(), 1);
+        EXPECT_EQ(target.GetLast(), 3);
+    }
+
+    EXPECT_EQ(target.GetLength(), 3);
+    EXPECT_EQ(target.Get(0), 1);
+    EXPECT_EQ(target.Get(1), 2);
+    EXPECT_EQ(target.Get(2), 3);
+
+    target = target;
+
+    EXPECT_EQ(target.GetLength(), 3);
+    EXPECT_EQ(target.GetFirst(), 1);
+    EXPECT_EQ(target.GetLast(), 3);
+}
+
+//ImmutableListSequence
+TEST(ImmutableListSequenceTest, AssignmentCreatesIndependentCopy)
+{
+    int initialItems[] = {10, 20};
+
+    lab2::ImmutableListSequence<int> target(initialItems, 2);
+
+    {
+        int sourceItems[] = {1, 2, 3};
+        lab2::ImmutableListSequence<int> source(sourceItems, 3);
+
+        target = source;
+
+        EXPECT_EQ(target.GetLength(), 3);
+        EXPECT_EQ(target.GetFirst(), 1);
+        EXPECT_EQ(target.GetLast(), 3);
+    }
+
+    EXPECT_EQ(target.GetLength(), 3);
+    EXPECT_EQ(target.Get(0), 1);
+    EXPECT_EQ(target.Get(1), 2);
+    EXPECT_EQ(target.Get(2), 3);
+
+    target = target;
+
+    EXPECT_EQ(target.GetLength(), 3);
+    EXPECT_EQ(target.GetFirst(), 1);
+    EXPECT_EQ(target.GetLast(), 3);
+}
+
+TEST(ImmutableListSequenceTest, InsertAtInvalidIndexThrows)
+{
+    int items[] = {1, 2, 3};
+    lab2::ImmutableListSequence<int> sequence(items, 3);
+
+    EXPECT_THROW(
+        sequence.InsertAt(4, sequence.GetLength()),
+        lab2::IndexOutOfRangeException
+    );
+
+    // Исходная последовательность не должна измениться.
+    EXPECT_EQ(sequence.GetLength(), 3);
+    EXPECT_EQ(sequence.Get(0), 1);
+    EXPECT_EQ(sequence.Get(1), 2);
+    EXPECT_EQ(sequence.Get(2), 3);
+}
 
 // ТЕСТЫ MUTABLE VS IMMUTABLE
 TEST(MutableVsImmutableTest, MutableModifiesInPlace)
@@ -416,6 +742,33 @@ TEST(MutableVsImmutableTest, ImmutableCreatesNewObject)
     EXPECT_EQ(result->GetLast(), 30);
 
     delete result;  // Освободить память!
+}
+
+TEST(MutableVsImmutableTest, ImmutableArrayPrependDoesNotModifyOriginal)
+{
+    int src[] = {1, 2, 3};
+
+    lab2::ImmutableArraySequence<int> seq(src, 3);
+
+    lab2::Sequence<int>* result = seq.Prepend(9);
+
+    ASSERT_NE(result, nullptr);
+    EXPECT_NE(result, &seq);
+
+    // Проверяем новую последовательность: {9, 1, 2, 3}.
+    EXPECT_EQ(result->GetLength(), 4);
+    EXPECT_EQ(result->Get(0), 9);
+    EXPECT_EQ(result->Get(1), 1);
+    EXPECT_EQ(result->Get(2), 2);
+    EXPECT_EQ(result->Get(3), 3);
+
+    // Исходная immutable-последовательность не изменилась.
+    EXPECT_EQ(seq.GetLength(), 3);
+    EXPECT_EQ(seq.Get(0), 1);
+    EXPECT_EQ(seq.Get(1), 2);
+    EXPECT_EQ(seq.Get(2), 3);
+
+    delete result;
 }
 
 TEST(MutableVsImmutableTest, ImmutableInsertAtDoesNotModifyOriginal)
@@ -535,6 +888,34 @@ TEST(IteratorTest, ArrayEnumerator)
     delete it;
 }
 
+TEST(IteratorTest, ListEnumeratorAfterEnd)
+{
+    int items[] = {1, 2, 3};
+
+    lab2::MutableListSequence<int> sequence(items, 3);
+    auto* iterator = sequence.GetEnumerator();
+
+    // До начала обхода текущего элемента нет.
+    EXPECT_FALSE(iterator->GetCurrent().HasValue());
+
+    EXPECT_TRUE(iterator->MoveNext());
+    EXPECT_TRUE(iterator->GetCurrent().HasValue());
+
+    EXPECT_TRUE(iterator->MoveNext());
+    EXPECT_TRUE(iterator->GetCurrent().HasValue());
+
+    EXPECT_TRUE(iterator->MoveNext());
+    EXPECT_TRUE(iterator->GetCurrent().HasValue());
+
+    // Все элементы уже пройдены.
+    EXPECT_FALSE(iterator->MoveNext());
+
+    // После завершения текущего элемента быть не должно.
+    EXPECT_FALSE(iterator->GetCurrent().HasValue());
+
+    delete iterator;
+}
+
 TEST(IteratorTest, EmptySequenceEnumerator)
 {
     lab2::ImmutableListSequence<int> empty;
@@ -548,8 +929,12 @@ TEST(IteratorTest, EmptySequenceEnumerator)
 }
 
 int main(int argc, char **argv) {
-    setlocale(LC_ALL, ""); // Локаль для корректного вывода кириллицы
-    std::cout << "\n=== Запуск модульных тестов (Лабораторная работа №2) ===\n" << std::endl;
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
+    std::cout
+        << "=== Запуск модульных тестов лабораторной работы №2 ===\n";
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

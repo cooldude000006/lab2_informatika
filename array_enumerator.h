@@ -23,6 +23,7 @@ namespace lab2
                 ++index_;
                 return true;
             }
+            index_ = sequence_->GetLength();
             return false;
         }
         Option<T> GetCurrent() const override

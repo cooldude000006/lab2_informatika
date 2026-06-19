@@ -32,6 +32,11 @@ namespace lab2
             {
                 throw InvalidOperationException("Размер не может быть отрицательным");
             }
+            if (items == nullptr && count > 0)
+            {
+                throw InvalidOperationException(
+                    "Указатель items равен nullptr при положительном количестве элементов");
+            }
             for (int i = 0; i < count; ++i)
             {
                 this->Append(Bit(items[i]));

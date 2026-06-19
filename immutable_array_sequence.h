@@ -29,6 +29,20 @@ namespace lab2
             : items_(new DynamicArray<T>(*other.items_))
         {
         }
+        ImmutableArraySequence<T>& operator=(
+            const ImmutableArraySequence<T>& other)
+        {
+            if (this != &other)
+            {
+                DynamicArray<T>* newItems =
+                    new DynamicArray<T>(*other.items_);
+
+                delete items_;
+                items_ = newItems;
+            }
+
+            return *this;
+        }
         ~ImmutableArraySequence() override
         {
             delete items_;
@@ -84,18 +98,19 @@ namespace lab2
 
         Sequence<T>* Prepend(const T& item) override
         {
-            DynamicArray<T>* newItems = new DynamicArray<T>(items_->GetSize()+1);
+            DynamicArray<T>* newItems =
+                new DynamicArray<T>(items_->GetSize() + 1);
             newItems->Set(0, item);
-            for (int i=0; i<items_->GetSize(); ++i)
+            for (int i = 0; i < items_->GetSize(); ++i)
             {
-                newItems->Set(i+1, newItems->Get(i));
+                newItems->Set(i + 1, items_->Get(i));
             }
             return new ImmutableArraySequence<T>(newItems);
         }
 
         Sequence<T>* InsertAt(const T& item, int index) override
         {
-            if (index<0 || index > items_->GetSize())
+            if (index<0 || index >= items_->GetSize())
             {
                 throw IndexOutOfRangeException(index, items_->GetSize(),"ImmutableArraySequence::InsertAt");
             }

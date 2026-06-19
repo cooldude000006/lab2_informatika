@@ -31,6 +31,19 @@ namespace lab2
         {
         }
 
+        ImmutableListSequence<T>& operator=(
+            const ImmutableListSequence<T>& other)
+        {
+            if (this != &other)
+            {
+                LinkedList<T>* newList =
+                    new LinkedList<T>(*other.list_);
+                delete list_;
+                list_ = newList;
+            }
+            return *this;
+        }
+
         ~ImmutableListSequence() override
         {
             delete list_;
@@ -98,7 +111,15 @@ namespace lab2
 
         Sequence<T>* InsertAt(const T& item, int index) override
         {
-            LinkedList<T>* newList= new LinkedList<T>(*list_);
+            if (index < 0 || index >= list_->GetLength())
+            {
+                throw IndexOutOfRangeException(
+                    index,
+                    list_->GetLength(),
+                    "вставка в неизменяемую последовательность на основе списка"
+                );
+            }
+            LinkedList<T>* newList = new LinkedList<T>(*list_);
             newList->InsertAt(item, index);
             return new ImmutableListSequence<T>(newList);
         }
