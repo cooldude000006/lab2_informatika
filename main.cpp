@@ -17,7 +17,7 @@
 #include <fcntl.h>
 #endif
 #include <cstdio>  // для кириллицы
-#include <vector>
+
 
 using namespace std;
 
@@ -130,29 +130,37 @@ void clear_input() {
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 }
 
-vector<int> input_int_array()
+void input_sequence_values(lab2::Sequence<int>*& sequence)
 {
     int count;
-    cout << "Введите количество элементов";
+    cout << "Введите количество элементов: ";
     while (!(cin >> count) || count <= 0)
     {
         clear_input();
-        cout << " Введите положительное число: ";
+        cout << "Введите положительное число: ";
     }
     clear_input();
-
-    vector<int> data(count);
-    cout << "Введите"  << count <<  "целых чисел через пробел: \n";
-    for (int i=0; i<count; ++i)
+    cout << "Введите " << count
+         << " целых чисел через пробел:\n";
+    for (int i = 0; i < count; ++i)
     {
-        while (!(cin >> data[i]))
+        int value;
+        while (!(cin >> value))
         {
             clear_input();
-            cout << "Введите целое число для позиции" << i << ": ";
+            cout << "Введите целое число для позиции "
+                 << i << ": ";
+        }
+        lab2::Sequence<int>* updatedSequence =
+            sequence->Append(value);
+        // Immutable-последовательность возвращает новый объект.
+        if (updatedSequence != sequence)
+        {
+            delete sequence;
+            sequence = updatedSequence;
         }
     }
     clear_input();
-    return data;
 }
 
 //создание последовательности с выбором типа
@@ -174,28 +182,30 @@ lab2::Sequence<int>* create_sequence_interactive()
     }
     clear_input();
 
-    auto data = input_int_array();
     lab2::Sequence<int>* seq = nullptr;
-
     switch (type)
     {
         case 1:
-            seq = new lab2::MutableArraySequence<int>(data.data(), data.size());
+            seq = new lab2::MutableArraySequence<int>();
             cout << "Создана MutableArraySequence\n";
             break;
+
         case 2:
-            seq = new lab2::ImmutableArraySequence<int>(data.data(), data.size());
+            seq = new lab2::ImmutableArraySequence<int>();
             cout << "Создана ImmutableArraySequence\n";
             break;
+
         case 3:
-            seq = new lab2::MutableListSequence<int>(data.data(), data.size());
+            seq = new lab2::MutableListSequence<int>();
             cout << "Создана MutableListSequence\n";
             break;
+
         case 4:
-            seq = new lab2::ImmutableListSequence<int>(data.data(), data.size());
+            seq = new lab2::ImmutableListSequence<int>();
             cout << "Создана ImmutableListSequence\n";
             break;
     }
+    input_sequence_values(seq);
     return seq;
 }
 
