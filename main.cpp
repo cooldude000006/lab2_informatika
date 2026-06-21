@@ -649,51 +649,85 @@ int main() {
         clear_input();
 
         cout << "\n";
-        switch (choice)
+        try
         {
-            case 1:
-                demo_mutable_vs_immutable();
-                break;
-            case 2:
-                demo_map_reduce();
-                break;
-            case 3:
-                demo_bit_sequence();
-                break;
-            case 4:
-                demo_exceptions_and_try();
-                break;
-            case 5:
+            switch (choice)
             {
-                delete current_seq;
-                current_seq = nullptr;
+                case 1:
+                    demo_mutable_vs_immutable();
+                    break;
 
-                current_seq = create_sequence_interactive();
+                case 2:
+                    demo_map_reduce();
+                    break;
 
-                if (current_seq != nullptr)
+                case 3:
+                    demo_bit_sequence();
+                    break;
+
+                case 4:
+                    demo_exceptions_and_try();
+                    break;
+
+                case 5:
                 {
-                    sequence_operations_menu(current_seq);
-
                     delete current_seq;
                     current_seq = nullptr;
+
+                    current_seq =
+                        create_sequence_interactive();
+
+                    if (current_seq != nullptr)
+                    {
+                        sequence_operations_menu(
+                            current_seq
+                        );
+
+                        delete current_seq;
+                        current_seq = nullptr;
+                    }
+
+                    break;
                 }
 
-                break;
+                case 6:
+                    cout << "Тесты запускаются отдельно. "
+                         << "В терминале сборки выполните:\n";
+                    cout << "   ctest --output-on-failure\n";
+                    break;
+
+                case 7:
+                    demo_performance();
+                    break;
+
+                case 0:
+                    delete current_seq;
+                    current_seq = nullptr;
+
+                    cout << "Работа завершена\n";
+                    break;
+
+                default:
+                    cout << "Неверный пункт меню. "
+                         << "Введите число от 0 до 7.\n";
+                    break;
             }
-                break;
-            case 6:
-                cout << "Тесты запускаются отдельно. В терминале сборки выполните:\n";
-                cout << "   ctest --output-on-failure\n";
-                break;
-            case 7:
-                demo_performance();
-                break;
-            case 0:
-                if (current_seq) delete current_seq;
-                cout << "Работа завершена\n";
-                break;
-            default:
-                cout << "Неверный пункт меню.\n";
+        }
+        catch (const lab2::Exception& error)
+        {
+            cout << "Ошибка: "
+                 << error.what()
+                 << "\n";
+        }
+        catch (const std::exception& error)
+        {
+            cout << "Стандартная ошибка: "
+                 << error.what()
+                 << "\n";
+        }
+        catch (...)
+        {
+            cout << "Произошла неизвестная ошибка.\n";
         }
 
         if (choice != 0)
