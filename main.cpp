@@ -3,13 +3,14 @@
 #include <limits>
 #include <chrono>
 #include <iomanip>
+#include <exception>
 
 #include "mutable_array_sequence.h"
 #include "immutable_array_sequence.h"
 #include "mutable_list_sequence.h"
 #include "immutable_list_sequence.h"
 #include "bit_sequence.h"
-#include <exception>
+
 
 #ifdef _WIN32
 #include <windows.h>

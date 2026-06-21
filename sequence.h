@@ -58,7 +58,6 @@ namespace lab2
 
         // итератор
         IEnumerator<T>* GetEnumerator() const override = 0;
-        //
 
         //декомпозиция
         virtual T GetFirst() const = 0; //получить первый элемент
