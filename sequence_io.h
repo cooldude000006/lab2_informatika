@@ -18,7 +18,6 @@ std::ostream& operator<<(std::ostream& output,
             output << ", ";
         }
     }
-
     output << "]";
     return output;
 }
