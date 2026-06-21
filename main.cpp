@@ -493,7 +493,7 @@ void sequence_operations_menu(lab2::Sequence<int>*& seq) {
         return;
     }
 
-    int choice;
+    int choice = -1;
     do {
         cout << "\n=== Операции с последовательностью ===\n";
         cout << "Текущая: " << *seq << " (длина: " << seq->GetLength() << ")\n";
