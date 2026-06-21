@@ -32,6 +32,7 @@ add_executable(${PROJECT_NAME}
         main.cpp
         bit_sequence.h
         ienumerator.h
+        icollection.h
 )
 
 # Файл с модульными тестами

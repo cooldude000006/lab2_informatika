@@ -2,7 +2,8 @@
 #include <string>
 #include <limits>
 #include <locale>
-#include <cstring> // для std::strlen
+#include <chrono>
+#include <iomanip>
 
 #include "mutable_array_sequence.h"
 #include "immutable_array_sequence.h"
@@ -20,6 +21,154 @@
 
 
 using namespace std;
+
+struct Measurement
+{
+    double microseconds;
+    long long checksum;
+};
+
+struct SequencePerformanceResult
+{
+    Measurement access;
+    Measurement reduce;
+    Measurement copy;
+};
+
+template<class Operation>
+Measurement measure_average_microseconds(
+    Operation operation,
+    int repetitions
+)
+{
+    long long checksum = 0;
+
+    auto start = chrono::steady_clock::now();
+
+    for (int i = 0; i < repetitions; ++i)
+    {
+        checksum += operation();
+    }
+
+    auto finish = chrono::steady_clock::now();
+
+    long long nanoseconds =
+        chrono::duration_cast<chrono::nanoseconds>(
+            finish - start
+        ).count();
+
+    Measurement result;
+
+    result.microseconds =
+        static_cast<double>(nanoseconds)
+        / 1000.0
+        / repetitions;
+
+    result.checksum = checksum;
+
+    return result;
+}
+
+template<class TSequence>
+SequencePerformanceResult measure_sequence_performance(
+    const TSequence& sequence,
+    int repetitions
+)
+{
+    SequencePerformanceResult result;
+
+    result.access =
+        measure_average_microseconds(
+            [&sequence]()
+            {
+                long long sum = 0;
+
+                for (
+                    int i = 0;
+                    i < sequence.GetLength();
+                    ++i
+                )
+                {
+                    sum += sequence.Get(i);
+                }
+
+                return sum;
+            },
+            repetitions
+        );
+
+    result.reduce =
+        measure_average_microseconds(
+            [&sequence]()
+            {
+                return sequence.Reduce(
+                    [](long long accumulator, int value)
+                    {
+                        return accumulator + value;
+                    },
+                    0LL
+                );
+            },
+            repetitions
+        );
+
+    result.copy =
+        measure_average_microseconds(
+            [&sequence]()
+            {
+                TSequence copy(sequence);
+
+                long long control =
+                    copy.GetLength();
+
+                if (copy.GetLength() > 0)
+                {
+                    control += copy.GetFirst();
+                    control += copy.GetLast();
+                }
+
+                return control;
+            },
+            repetitions
+        );
+
+    return result;
+}
+
+void print_performance_table(
+    const SequencePerformanceResult& arrayResult,
+    const SequencePerformanceResult& listResult
+)
+{
+    cout << "\n=== Результаты измерения ===\n";
+    cout << "Среднее время одной операции, мкс.\n\n";
+
+    cout << left
+         << setw(32) << "Операция"
+         << setw(20) << "ArraySequence"
+         << setw(20) << "ListSequence"
+         << "\n";
+
+    cout << string(72, '-') << "\n";
+
+    cout << left
+         << setw(32) << "Получение всех элементов"
+         << setw(20) << arrayResult.access.microseconds
+         << setw(20) << listResult.access.microseconds
+         << "\n";
+
+    cout << left
+         << setw(32) << "Reduce (сумма)"
+         << setw(20) << arrayResult.reduce.microseconds
+         << setw(20) << listResult.reduce.microseconds
+         << "\n";
+
+    cout << left
+         << setw(32) << "Глубокое копирование"
+         << setw(20) << arrayResult.copy.microseconds
+         << setw(20) << listResult.copy.microseconds
+         << "\n";
+}
 
 // Вспомогательные функции для демонстрации
 void demo_mutable_vs_immutable() {
@@ -119,6 +268,7 @@ void show_menu() {
     cout << " 4. Исключения и Try-семантика (Option<T>)                  \n";
     cout << " 5. Создать последовательность и выполнить операции         \n";
     cout << " 6. Информация о запуске модульных тестов                   \n";
+    cout << " 7. Сравнение производительности                            \n";
     cout << " 0. Выход                                                   \n";
     cout << "----------------------------------------------------------\n";
     cout << "Выберите пункт меню: \n";
@@ -128,6 +278,125 @@ void show_menu() {
 void clear_input() {
     cin.clear();
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
+}
+
+void demo_performance()
+{
+    cout << "\n=== Оценка производительности ===\n";
+
+    int size;
+
+    cout << "Введите количество элементов (1..3000): ";
+
+    while (
+        !(cin >> size) ||
+        size < 1 ||
+        size > 3000
+    )
+    {
+        clear_input();
+
+        cout << "Ошибка: введите целое число "
+             << "от 1 до 3000: ";
+    }
+
+    clear_input();
+
+    int repetitions;
+
+    if (size <= 300)
+    {
+        repetitions = 20;
+    }
+    else if (size <= 1000)
+    {
+        repetitions = 5;
+    }
+    else
+    {
+        repetitions = 1;
+    }
+
+    int* items = new int[size];
+
+    for (int i = 0; i < size; ++i)
+    {
+        items[i] = (i % 100) + 1;
+    }
+
+    try
+    {
+        lab2::MutableArraySequence<int>
+            arraySequence(items, size);
+
+        lab2::MutableListSequence<int>
+            listSequence(items, size);
+
+        delete[] items;
+        items = nullptr;
+
+        cout << "Размер последовательностей: "
+             << size << "\n";
+
+        cout << "Количество повторений: "
+             << repetitions << "\n";
+
+        cout << "Выполняется измерение...\n";
+
+        SequencePerformanceResult arrayResult =
+            measure_sequence_performance(
+                arraySequence,
+                repetitions
+            );
+
+        SequencePerformanceResult listResult =
+            measure_sequence_performance(
+                listSequence,
+                repetitions
+            );
+
+        cout << fixed << setprecision(3);
+
+        print_performance_table(
+            arrayResult,
+            listResult
+        );
+
+        bool checksumsEqual =
+            arrayResult.access.checksum ==
+                listResult.access.checksum &&
+            arrayResult.reduce.checksum ==
+                listResult.reduce.checksum &&
+            arrayResult.copy.checksum ==
+                listResult.copy.checksum;
+
+        cout << "\nКонтроль результатов: ";
+
+        if (checksumsEqual)
+        {
+            cout << "результаты совпадают.\n";
+        }
+        else
+        {
+            cout << "обнаружено несовпадение.\n";
+        }
+
+        cout << "\nПояснение:\n";
+        cout << "DynamicArray предоставляет прямой "
+             << "доступ по индексу.\n";
+
+        cout << "LinkedList для получения элемента "
+             << "по индексу проходит список от начала.\n";
+
+        cout << "Поэтому последовательный обход через "
+             << "Get(index) обычно быстрее для "
+             << "ArraySequence.\n";
+    }
+    catch (...)
+    {
+        delete[] items;
+        throw;
+    }
 }
 
 void input_sequence_values(lab2::Sequence<int>*& sequence)
@@ -205,7 +474,16 @@ lab2::Sequence<int>* create_sequence_interactive()
             cout << "Создана ImmutableListSequence\n";
             break;
     }
-    input_sequence_values(seq);
+    try
+    {
+        input_sequence_values(seq);
+    }
+    catch (...)
+    {
+        delete seq;
+        throw;
+    }
+
     return seq;
 }
 
@@ -325,10 +603,19 @@ void sequence_operations_menu(lab2::Sequence<int>*& seq) {
                 default:
                     cout << "Неверный выбор.\n";
             }
-        } catch (const lab2::Exception& e) {
-            cout << "Ошибка: " << e.what() << "\n";
+        } catch (const lab2::Exception& error) {
+            cout << "Ошибка: " << error.what() << "\n";
         }
-
+        catch (const std::exception& error)
+        {
+            cout << "Стандартная ошибка: "
+                 << error.what()
+                 << "\n";
+        }
+        catch (...)
+        {
+            cout << "Произошла неизвестная ошибка.\n";
+        }
         if (choice != 0) {
             cout << "\nНажмите Enter для продолжения...";
             cin.get();
@@ -356,7 +643,7 @@ int main() {
         if (!(cin >> choice))
         {
             clear_input();
-            cout << "Ошибка ввода. Введите число от 0 до 6.\n";
+            cout << "Ошибка ввода. Введите число от 0 до 7.\n";
             continue;
         }
         clear_input();
@@ -377,22 +664,29 @@ int main() {
                 demo_exceptions_and_try();
                 break;
             case 5:
-                // Создание и работа с последовательностью
-                if (current_seq)
-                {
-                }
+            {
+                delete current_seq;
+                current_seq = nullptr;
+
                 current_seq = create_sequence_interactive();
-                if (current_seq)
+
+                if (current_seq != nullptr)
                 {
                     sequence_operations_menu(current_seq);
-                    // После выхода из меню операций удаляем последовательность
+
                     delete current_seq;
                     current_seq = nullptr;
                 }
+
+                break;
+            }
                 break;
             case 6:
                 cout << "Тесты запускаются отдельно. В терминале сборки выполните:\n";
                 cout << "   ctest --output-on-failure\n";
+                break;
+            case 7:
+                demo_performance();
                 break;
             case 0:
                 if (current_seq) delete current_seq;

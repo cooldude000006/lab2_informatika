@@ -84,8 +84,13 @@ namespace lab2
         {
             if (head_ == nullptr)
             {
-                throw InvalidOperationException("Невозможно получить первый элемент, список пуст");
+                throw IndexOutOfRangeException(
+                    0,
+                    count_,
+                    "LinkedList::GetFirst"
+                );
             }
+
             return head_->data;
         }
 
@@ -93,15 +98,23 @@ namespace lab2
         {
             if (head_ == nullptr)
             {
-                throw InvalidOperationException("Невозможно получить последний элемент: список пуст");
+                throw IndexOutOfRangeException(
+                    -1,
+                    count_,
+                    "LinkedList::GetLast"
+                );
             }
+
             Node* current = head_;
+
             while (current->next != nullptr)
             {
                 current = current->next;
             }
+
             return current->data;
         }
+
         T Get(int index) const
         {
             return get_node_at(index)->data;

@@ -56,8 +56,13 @@ namespace  lab2
         {
             if (items_->GetSize() == 0)
             {
-                throw InvalidOperationException("Невозможно получить первый элемент: последовательность пуста");
+                throw IndexOutOfRangeException(
+                    0,
+                    items_->GetSize(),
+                    "MutableArraySequence::GetFirst"
+                );
             }
+
             return items_->Get(0);
         }
 
@@ -65,9 +70,16 @@ namespace  lab2
         {
             if (items_->GetSize() == 0)
             {
-                throw InvalidOperationException("Невозможно получить последний элемент: последовательность пуста");
+                throw IndexOutOfRangeException(
+                    -1,
+                    items_->GetSize(),
+                    "MutableArraySequence::GetLast"
+                );
             }
-            return items_->Get(items_->GetSize() - 1);
+
+            return items_->Get(
+                items_->GetSize() - 1
+            );
         }
 
         T Get(int index) const override

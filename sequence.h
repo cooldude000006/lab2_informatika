@@ -1,21 +1,43 @@
-#pragma  once
+#pragma once
+
 #include <stdexcept>
+#include <cstddef>
 #include "exceptions.h"
-//---
 #include "ienumerable.h"
+#include "icollection.h"
 #include "option.h"
-//
 #include <ostream>
-//---
 namespace lab2
 {
     template <class T>
-    class Sequence : public IEnumerable<T>
+    class Sequence :
+    public IEnumerable<T>,
+    public ICollection<T>
     {
     public:
         virtual ~Sequence() = default;
 
-        //
+        std::size_t GetCount() const override
+        {
+            return static_cast<std::size_t>(
+                GetLength()
+            );
+        }
+
+        T Get(std::size_t index) const override
+        {
+            if (index >= GetCount())
+            {
+                throw IndexOutOfRangeException(
+                    static_cast<int>(index),
+                    GetLength(),
+                    "ICollection::Get"
+                );
+            }
+
+            return Get(static_cast<int>(index));
+        }
+
         //try-семантика(получение элемента по индексу)
         Option<T> TryGet(int index) const
         {
@@ -60,32 +82,18 @@ namespace lab2
         virtual Sequence<T>* Concat(Sequence<T>* list) const = 0;//сцепить с другой последовательностью
 
         //map-reduce
-        template<typename Func> // применить функцию к каждому элементу
+        template<typename Func>
         Sequence<T>* Map(Func f) const
         {
             Sequence<T>* result = CreateEmpty();
-            for (int i = 0; i < GetLength(); ++i)
-            {
-                Sequence<T>* next = result->Append(f(Get(i)));
-                if (next != result)
-                {
-                    delete result;
-                    result = next;
-                }
-            }
-            return result;
-        }
 
-        template<typename Predicate> // отфильтровать элементы по предикату
-        Sequence<T>* Where(Predicate pred) const
-        {
-            Sequence<T>* result = CreateEmpty();
-            for (int i = 0; i < GetLength(); ++i)
+            try
             {
-                T item = Get(i);
-                if (pred(item))
+                for (int i = 0; i < GetLength(); ++i)
                 {
-                    Sequence<T>* next = result->Append(item);
+                    Sequence<T>* next =
+                        result->Append(f(Get(i)));
+
                     if (next != result)
                     {
                         delete result;
@@ -93,6 +101,75 @@ namespace lab2
                     }
                 }
             }
+            catch (...)
+            {
+                delete result;
+                throw;
+            }
+            return result;
+        }
+
+        template<typename Func>
+        Sequence<T>* MapWithIndex(Func function) const
+        {
+            Sequence<T>* result = CreateEmpty();
+
+            try
+            {
+                for (int index = 0; index < GetLength(); ++index)
+                {
+                    T newValue =
+                        function(Get(index), index);
+
+                    Sequence<T>* next =
+                        result->Append(newValue);
+
+                    if (next != result)
+                    {
+                        delete result;
+                        result = next;
+                    }
+                }
+            }
+            catch (...)
+            {
+                delete result;
+                throw;
+            }
+
+            return result;
+        }
+
+        template<typename Predicate>
+        Sequence<T>* Where(Predicate pred) const
+        {
+            Sequence<T>* result = CreateEmpty();
+
+            try
+            {
+                for (int i = 0; i < GetLength(); ++i)
+                {
+                    T item = Get(i);
+
+                    if (pred(item))
+                    {
+                        Sequence<T>* next =
+                            result->Append(item);
+
+                        if (next != result)
+                        {
+                            delete result;
+                            result = next;
+                        }
+                    }
+                }
+            }
+            catch (...)
+            {
+                delete result;
+                throw;
+            }
+
             return result;
         }
 

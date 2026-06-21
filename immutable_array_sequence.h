@@ -51,20 +51,34 @@ namespace lab2
         //декомпозиция
         T GetFirst() const override
         {
-            if (items_->GetSize()==0)
+            if (items_->GetSize() == 0)
             {
-                throw InvalidOperationException("Невозможно получить первый элемент: последовательность пуста");
+                throw IndexOutOfRangeException(
+                    0,
+                    items_->GetSize(),
+                    "ImmutableArraySequence::GetFirst"
+                );
             }
+
             return items_->Get(0);
         }
+
         T GetLast() const override
         {
-            if (items_->GetSize()==0)
+            if (items_->GetSize() == 0)
             {
-                throw InvalidOperationException("Невозможно получить последний элемент: последовательность пуста");
+                throw IndexOutOfRangeException(
+                    -1,
+                    items_->GetSize(),
+                    "ImmutableArraySequence::GetLast"
+                );
             }
-            return items_->Get(items_->GetSize()-1);
+
+            return items_->Get(
+                items_->GetSize() - 1
+            );
         }
+
         T Get(int index) const override
         {
             return items_->Get(index);

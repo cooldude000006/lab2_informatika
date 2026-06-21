@@ -53,19 +53,11 @@ namespace lab2
         // декомпозиция
         T GetFirst() const override
         {
-            if (list_->GetLength() == 0)
-            {
-                throw InvalidOperationException("Невозможно получить первый элемент: список пуст");
-            }
             return list_->GetFirst();
         }
 
         T GetLast() const override
         {
-            if (list_->GetLength() == 0)
-            {
-                throw InvalidOperationException("Невозможно получить последний элемент: список пуст");
-            }
             return list_->GetLast();
         }
 

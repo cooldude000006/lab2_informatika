@@ -10,6 +10,7 @@
 #include "immutable_list_sequence.h"
 #include "bit_sequence.h"
 #include "option.h"
+#include "icollection.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -316,8 +317,8 @@ TEST(LinkedListTest, Exceptions)
     lab2::LinkedList<int> list;
 
     // Пустой список
-    EXPECT_THROW(list.GetFirst(), lab2::InvalidOperationException);
-    EXPECT_THROW(list.GetLast(), lab2::InvalidOperationException);
+    EXPECT_THROW(list.GetFirst(), lab2::IndexOutOfRangeException);
+    EXPECT_THROW(list.GetLast(), lab2::IndexOutOfRangeException);
     EXPECT_THROW(list.Get(0), lab2::IndexOutOfRangeException);
 
     // Неправильный индекс
@@ -926,6 +927,326 @@ TEST(IteratorTest, EmptySequenceEnumerator)
     EXPECT_FALSE(it->GetCurrent().HasValue());
 
     delete it;
+}
+
+//тест исключения из map
+TEST(SequenceExceptionSafetyTest, MapPropagatesException)
+{
+    int items[] = {1, 2, 3, 4};
+
+    lab2::MutableArraySequence<int> sequence(
+        items,
+        4
+    );
+
+    EXPECT_THROW(
+        {
+            lab2::Sequence<int>* result =
+                sequence.Map(
+                    [](int value)
+                    {
+                        if (value == 3)
+                        {
+                            throw lab2::InvalidOperationException(
+                                "Ошибка внутри функции Map"
+                            );
+                        }
+
+                        return value * 2;
+                    }
+                );
+
+            // Выполнится только при ошибочном отсутствии исключения.
+            delete result;
+        },
+        lab2::InvalidOperationException
+    );
+
+    // Исходная последовательность не изменилась.
+    EXPECT_EQ(sequence.GetLength(), 4);
+    EXPECT_EQ(sequence.Get(0), 1);
+    EXPECT_EQ(sequence.Get(3), 4);
+}
+
+//тест исключения из where
+TEST(SequenceExceptionSafetyTest, WherePropagatesException)
+{
+    int items[] = {1, 2, 3, 4};
+
+    lab2::ImmutableListSequence<int> sequence(
+        items,
+        4
+    );
+
+    EXPECT_THROW(
+        {
+            lab2::Sequence<int>* result =
+                sequence.Where(
+                    [](int value)
+                    {
+                        if (value == 3)
+                        {
+                            throw lab2::InvalidOperationException(
+                                "Ошибка внутри функции Where"
+                            );
+                        }
+
+                        return value % 2 == 0;
+                    }
+                );
+
+            delete result;
+        },
+        lab2::InvalidOperationException
+    );
+
+    // Исходная immutable-последовательность не изменилась.
+    EXPECT_EQ(sequence.GetLength(), 4);
+    EXPECT_EQ(sequence.GetFirst(), 1);
+    EXPECT_EQ(sequence.GetLast(), 4);
+}
+
+//ICollectionTest
+//для массива
+TEST(ICollectionTest, ArraySequenceWorksThroughInterface)
+{
+    int items[] = {10, 20, 30};
+
+    lab2::MutableArraySequence<int> sequence(
+        items,
+        3
+    );
+
+    lab2::ICollection<int>* collection =
+        &sequence;
+
+    EXPECT_EQ(collection->GetCount(), 3u);
+    EXPECT_EQ(collection->Get(0), 10);
+    EXPECT_EQ(collection->Get(1), 20);
+    EXPECT_EQ(collection->Get(2), 30);
+}
+
+//для списка
+TEST(ICollectionTest, ListSequenceWorksThroughInterface)
+{
+    int items[] = {5, 15, 25};
+
+    lab2::ImmutableListSequence<int> sequence(
+        items,
+        3
+    );
+
+    lab2::ICollection<int>* collection =
+        &sequence;
+
+    EXPECT_EQ(collection->GetCount(), 3u);
+    EXPECT_EQ(collection->Get(0), 5);
+    EXPECT_EQ(collection->Get(1), 15);
+    EXPECT_EQ(collection->Get(2), 25);
+}
+
+//неправильный индекс
+TEST(ICollectionTest, InvalidIndexThrows)
+{
+    int items[] = {1, 2, 3};
+
+    lab2::MutableArraySequence<int> sequence(
+        items,
+        3
+    );
+
+    lab2::ICollection<int>* collection =
+        &sequence;
+
+    EXPECT_THROW(
+        collection->Get(collection->GetCount()),
+        lab2::IndexOutOfRangeException
+    );
+}
+
+//копирование
+TEST(ICollectionTest, ConcreteCollectionHasDeepCopy)
+{
+    int items[] = {1, 2, 3};
+
+    lab2::MutableArraySequence<int> original(
+        items,
+        3
+    );
+
+    lab2::MutableArraySequence<int> copy(
+        original
+    );
+
+    original[0] = 999;
+
+    lab2::ICollection<int>* collection =
+        &copy;
+
+    EXPECT_EQ(collection->GetCount(), 3u);
+    EXPECT_EQ(collection->Get(0), 1);
+    EXPECT_EQ(collection->Get(1), 2);
+    EXPECT_EQ(collection->Get(2), 3);
+}
+
+//MapWithIndexTest
+//для mutable последовательности
+TEST(MapWithIndexTest, WorksForMutableArraySequence)
+{
+    int items[] = {10, 20, 30, 40};
+
+    lab2::MutableArraySequence<int> sequence(
+        items,
+        4
+    );
+
+    lab2::Sequence<int>* result =
+        sequence.MapWithIndex(
+            [](int value, int index)
+            {
+                return value + index;
+            }
+        );
+
+    ASSERT_NE(result, nullptr);
+
+    EXPECT_EQ(result->GetLength(), 4);
+    EXPECT_EQ(result->Get(0), 10);
+    EXPECT_EQ(result->Get(1), 21);
+    EXPECT_EQ(result->Get(2), 32);
+    EXPECT_EQ(result->Get(3), 43);
+
+    // Исходная последовательность не изменяется.
+    EXPECT_EQ(sequence.Get(0), 10);
+    EXPECT_EQ(sequence.Get(3), 40);
+
+    delete result;
+}
+
+//для immutable последовательности
+TEST(MapWithIndexTest, WorksForImmutableListSequence)
+{
+    int items[] = {5, 5, 5};
+
+    lab2::ImmutableListSequence<int> sequence(
+        items,
+        3
+    );
+
+    lab2::Sequence<int>* result =
+        sequence.MapWithIndex(
+            [](int value, int index)
+            {
+                return value * index;
+            }
+        );
+
+    ASSERT_NE(result, nullptr);
+
+    EXPECT_EQ(result->GetLength(), 3);
+    EXPECT_EQ(result->Get(0), 0);
+    EXPECT_EQ(result->Get(1), 5);
+    EXPECT_EQ(result->Get(2), 10);
+
+    // Исходная immutable-последовательность сохранилась.
+    EXPECT_EQ(sequence.GetLength(), 3);
+    EXPECT_EQ(sequence.Get(0), 5);
+    EXPECT_EQ(sequence.Get(1), 5);
+    EXPECT_EQ(sequence.Get(2), 5);
+
+    delete result;
+}
+
+//тест через базовый указатель
+TEST(MapWithIndexTest, WorksThroughSequencePointer)
+{
+    int items[] = {2, 4, 6};
+
+    lab2::Sequence<int>* sequence =
+        new lab2::MutableListSequence<int>(
+            items,
+            3
+        );
+
+    lab2::Sequence<int>* result =
+        sequence->MapWithIndex(
+            [](int value, int index)
+            {
+                return value + index * 10;
+            }
+        );
+
+    ASSERT_NE(result, nullptr);
+
+    EXPECT_EQ(result->GetLength(), 3);
+    EXPECT_EQ(result->Get(0), 2);
+    EXPECT_EQ(result->Get(1), 14);
+    EXPECT_EQ(result->Get(2), 26);
+
+    delete result;
+    delete sequence;
+}
+
+//проверка исключения
+TEST(MapWithIndexTest, PropagatesException)
+{
+    int items[] = {1, 2, 3, 4};
+
+    lab2::ImmutableArraySequence<int> sequence(
+        items,
+        4
+    );
+
+    EXPECT_THROW(
+        {
+            lab2::Sequence<int>* result =
+                sequence.MapWithIndex(
+                    [](int value, int index)
+                    {
+                        if (index == 2)
+                        {
+                            throw lab2::InvalidOperationException(
+                                "Ошибка внутри MapWithIndex"
+                            );
+                        }
+
+                        return value + index;
+                    }
+                );
+
+            delete result;
+        },
+        lab2::InvalidOperationException
+    );
+
+    EXPECT_EQ(sequence.GetLength(), 4);
+    EXPECT_EQ(sequence.GetFirst(), 1);
+    EXPECT_EQ(sequence.GetLast(), 4);
+}
+
+//тест для всех поледовательностей
+TEST(EmptySequenceTest,GetFirstAndLastThrowIndexOutOfRange)
+{
+    lab2::MutableArraySequence<int>
+        mutableArray;
+
+    lab2::ImmutableArraySequence<int>
+        immutableArray;
+
+    lab2::MutableListSequence<int>
+        mutableList;
+
+    lab2::ImmutableListSequence<int>
+        immutableList;
+
+    EXPECT_THROW(mutableArray.GetFirst(),lab2::IndexOutOfRangeException);
+    EXPECT_THROW(mutableArray.GetLast(),lab2::IndexOutOfRangeException);
+    EXPECT_THROW(immutableArray.GetFirst(),lab2::IndexOutOfRangeException);
+    EXPECT_THROW(immutableArray.GetLast(),lab2::IndexOutOfRangeException);
+    EXPECT_THROW(mutableList.GetFirst(),lab2::IndexOutOfRangeException);
+    EXPECT_THROW(mutableList.GetLast(),lab2::IndexOutOfRangeException);
+    EXPECT_THROW(immutableList.GetFirst(),lab2::IndexOutOfRangeException);
+    EXPECT_THROW(immutableList.GetLast(),lab2::IndexOutOfRangeException);
 }
 
 int main(int argc, char **argv) {
