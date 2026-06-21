@@ -1,5 +1,4 @@
 #pragma once
-#include <stdexcept>
 #include <algorithm>
 #include "exceptions.h"
 
@@ -52,7 +51,7 @@ namespace lab2
             }
         }
 
-        explicit DynamicArray(int size) : size_(size)  // ✅ int, а не intq
+        explicit DynamicArray(int size) : size_(size)
         {
             if (size < 0)
             {

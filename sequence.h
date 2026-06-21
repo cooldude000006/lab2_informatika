@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdexcept>
 #include <cstddef>
 #include "exceptions.h"
 #include "ienumerable.h"

@@ -1,5 +1,4 @@
 #pragma once
-#include <stdexcept>
 #include "exceptions.h"
 
 namespace lab2

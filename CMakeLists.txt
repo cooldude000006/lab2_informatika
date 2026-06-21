@@ -1,58 +1,68 @@
 cmake_minimum_required(VERSION 3.15)
 project(laba_2 VERSION 1.0 LANGUAGES CXX)
-
-# ================= НАСТРОЙКИ КОМПИЛЯЦИИ =================
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Строгий режим предупреждений (полезно для учебных работ)
+# Строгие предупреждения.
+# Любое предупреждение считается ошибкой.
 if(MSVC)
-    add_compile_options(/W4 /WX)
-    # 🔑 Критично для Windows: заставляет компилятор использовать UTF-8
-    # для исходного кода и вывода в консоль. Без этого кириллица может "поехать".
-    add_compile_options(/utf-8)
+add_compile_options(
+/W4
+/WX
+/utf-8
+)
 else()
-    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+add_compile_options(
+-Wall
+-Wextra
+-Wpedantic
+-Werror
+)
 endif()
 
-# ================= GOOGLE TEST =================
+# Подключаем Google Test автоматически.
 include(FetchContent)
+
 FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
+googletest
+URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
 )
-# Для MSVC: используем динамическую CRT, чтобы избежать конфликтов линковки
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+# Настройка нужна только для компилятора Microsoft.
+if(MSVC)
+set(
+        gtest_force_shared_crt
+        ON
+        CACHE BOOL ""
+        FORCE
+)
+endif()
+
 FetchContent_MakeAvailable(googletest)
 
-# ================= ИСПОЛНЯЕМЫЕ ФАЙЛЫ =================
-# Основной файл (консольный UI)
-add_executable(${PROJECT_NAME}
-        main.cpp
-        bit_sequence.h
-        ienumerator.h
-        icollection.h
+# Основная консольная программа.
+add_executable(
+${PROJECT_NAME}
+main.cpp
 )
 
-# Файл с модульными тестами
-add_executable(${PROJECT_NAME}_tests
-        tests.cpp
+# Отдельная программа с модульными тестами.
+add_executable(
+${PROJECT_NAME}_tests
+tests.cpp
 )
 
-# Подключение заголовочных файлов
-# ⚠️ Так как все шаблоны реализованы в .h файлах, отдельной "библиотеки" не нужно.
-# Компилятор увидит .h через target_include_directories.
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})
-target_include_directories(${PROJECT_NAME}_tests PRIVATE ${CMAKE_SOURCE_DIR})
-
-# Линковка Google Test только к таргету тестов
-target_link_libraries(${PROJECT_NAME}_tests PRIVATE
-        GTest::gtest_main
+# В tests.cpp подключаем gtest
+target_link_libraries(
+${PROJECT_NAME}_tests
+PRIVATE
+GTest::gtest
 )
 
-# ================= ИНТЕГРАЦИЯ ТЕСТОВ =================
+#разрешение cmake запускать тесты
 enable_testing()
 include(GoogleTest)
-# Автоматически регистрирует все TEST() и TEST_F() в системе CTest
+
+#находим все TEST() в tests.cpp
 gtest_discover_tests(${PROJECT_NAME}_tests)

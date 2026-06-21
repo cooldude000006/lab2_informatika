@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include <limits>
-#include <locale>
 #include <chrono>
 #include <iomanip>
 
@@ -10,14 +9,11 @@
 #include "mutable_list_sequence.h"
 #include "immutable_list_sequence.h"
 #include "bit_sequence.h"
-#include "option.h"
+#include <exception>
 
 #ifdef _WIN32
 #include <windows.h>
-#include <io.h>
-#include <fcntl.h>
 #endif
-#include <cstdio>  // для кириллицы
 
 
 using namespace std;
@@ -627,13 +623,7 @@ int main() {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
-    _setmode(_fileno(stdout), _O_TEXT);
-    _setmode(_fileno(stdin), _O_TEXT);
 #endif
-    std::locale::global(std::locale(""));
-    std::cout.imbue(std::locale(""));
-    std::cin.imbue(std::locale(""));
-
     lab2::Sequence<int>* current_seq = nullptr;  // Храним текущую последовательность
 
     int choice = -1;

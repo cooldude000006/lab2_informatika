@@ -1,54 +1,85 @@
 #pragma once
-#include <stdexcept>
+
+#include <cstddef>
+#include <exception>
 #include <string>
 
 namespace lab2
 {
-    class Exception : public std::exception
-    {
-    protected:
-        std::string message_;
-    public:
-        explicit Exception(const std::string& message) : message_(message) {}
-
-        const char* what() const noexcept override {
-            return message_.c_str();
-        }
-        virtual ~Exception() = default;
-    };
-
-	class IndexOutOfRangeException:public Exception
+	class Exception : public std::exception
 	{
-    public:
- 		IndexOutOfRangeException(int index, int size, const std::string& context = "")
-			: Exception("Выход за границы: индекс="+std::to_string(index)+", размер=" + std::to_string(size)+ (context.empty() ? "" : ", контекст=" + context))
+	protected:
+		std::string message_;
+
+	public:
+		explicit Exception(const std::string& message)
+			: message_(message)
 		{
 		}
-    };
 
-	class InvalidOperationException : public Exception
+		const char* what() const noexcept override
+		{
+			return message_.c_str();
+		}
+
+		~Exception() override = default;
+	};
+
+	class IndexOutOfRangeException : public Exception
 	{
 	public:
-		explicit InvalidOperationException(const std::string& message)
-			: Exception("Недопустимая операция: " + message)
+		IndexOutOfRangeException(
+			int index,
+			int size,
+			const std::string& context = ""
+		)
+			: Exception(
+				"Выход за границы: индекс=" +
+				std::to_string(index) +
+				", размер=" +
+				std::to_string(size) +
+				(
+					context.empty()
+						? ""
+						: ", контекст=" + context
+				)
+			)
 		{
 		}
 	};
 
-	class EmptyCollectionException: public Exception
+	class InvalidOperationException : public Exception
 	{
 	public:
-		EmptyCollectionException(const std::string& collectionType)
-			: Exception("Коллекция пуста: " + collectionType)
+		explicit InvalidOperationException(
+			const std::string& message
+		)
+			: Exception(
+				"Недопустимая операция: " + message
+			)
 		{
 		}
-    };
+	};
 
-	class SizeMismatchException: public Exception
+	class SizeMismatchException : public Exception
 	{
 	public:
-		SizeMismatchException(size_t expected, size_t actual, const std::string& operation = "")
-			: Exception("Несовпадение размеров: ожидается=" + std::to_string(expected)+ ", фактически=" + std::to_string(actual)+ (operation.empty() ? "" : ", операция=" + operation))
+		SizeMismatchException(
+			std::size_t expected,
+			std::size_t actual,
+			const std::string& operation = ""
+		)
+			: Exception(
+				"Несовпадение размеров: ожидается=" +
+				std::to_string(expected) +
+				", фактически=" +
+				std::to_string(actual) +
+				(
+					operation.empty()
+						? ""
+						: ", операция=" + operation
+				)
+			)
 		{
 		}
 	};

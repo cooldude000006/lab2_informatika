@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include <iostream>
-#include <locale>
 
 #include "dynamic_array.h"
 #include "linked_list.h"
