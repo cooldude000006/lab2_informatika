@@ -5,9 +5,7 @@
 #include "ienumerable.h"
 #include "icollection.h"
 #include "option.h"
-#include <ostream>
-namespace lab2
-{
+namespace lab2 {
     template <class T>
     class Sequence :
     public IEnumerable<T>,
@@ -192,20 +190,7 @@ namespace lab2
     protected:
         virtual Sequence<T>* CreateEmpty() const = 0; //вспомогательный метод создания пустой последовательности того же типа
     };
-    //перегрузка operator <<
-    template<typename T>
-    std::ostream& operator<<(std::ostream& os, const Sequence<T>& seq)
-    {
-        os << "[";
-        for (int i = 0; i < seq.GetLength(); ++i)
-        {
-            os << seq.Get(i);
-            if (i < seq.GetLength() - 1) os << ", ";
-        }
-        return os << "]";
-    }
 }
-
 
 
 

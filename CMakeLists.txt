@@ -45,6 +45,7 @@ FetchContent_MakeAvailable(googletest)
 add_executable(
 ${PROJECT_NAME}
 main.cpp
+        sequence_io.h
 )
 
 # Отдельная программа с модульными тестами.

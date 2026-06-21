@@ -19,6 +19,7 @@
 
 using namespace std;
 
+//оценка производительности
 struct Measurement
 {
     double microseconds;
