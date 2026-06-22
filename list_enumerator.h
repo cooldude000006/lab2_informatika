@@ -4,6 +4,7 @@
 
 namespace lab2
 {
+    // Итератор для ListSequence
     template <typename T>
     class ListEnumerator : public IEnumerator<T>
     {

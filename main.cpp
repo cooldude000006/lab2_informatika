@@ -101,7 +101,7 @@ SequencePerformanceResult measure_sequence_performance(
             [&sequence]()
             {
                 return sequence.Reduce(
-                    [](long long accumulator, int value)
+                    [](int value, long long accumulator)
                     {
                         return accumulator + value;
                     },
