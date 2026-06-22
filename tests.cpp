@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <iostream>
+#include <sstream>
 
+#include "sequence_io.h"
 #include "dynamic_array.h"
 #include "linked_list.h"
 #include "mutable_array_sequence.h"
@@ -14,6 +16,40 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+
+//SequenceIoTest
+TEST(SequenceIoTest, PrintsMutableArraySequence)
+{
+    int items[] = {1, 2, 3};
+
+    lab2::MutableArraySequence<int> sequence(
+        items,
+        3
+    );
+
+    std::ostringstream output;
+
+    output << sequence;
+
+    EXPECT_EQ(
+        output.str(),
+        "[1, 2, 3]"
+    );
+}
+
+TEST(SequenceIoTest, PrintsEmptySequence)
+{
+    lab2::MutableArraySequence<int> sequence;
+
+    std::ostringstream output;
+
+    output << sequence;
+
+    EXPECT_EQ(
+        output.str(),
+        "[]"
+    );
+}
 
 //для bitsequence
 TEST(BitSequenceTest, BasicConstruction)

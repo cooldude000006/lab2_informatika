@@ -169,13 +169,13 @@ namespace lab2 {
             return result;
         }
 
-        template <typename Func, typename TAcc> //свернкть последовательность в одно число
+        template<typename Func, typename TAcc>
         TAcc Reduce(Func f, TAcc initial) const
         {
             TAcc acc = initial;
-            for (int i=0; i<GetLength(); ++i)
+            for (int i = 0; i < GetLength(); ++i)
             {
-                acc = f(acc, Get(i));
+                acc = f(Get(i), acc);
             }
             return acc;
         }
