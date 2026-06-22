@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <exception>
 
+#include "sequence_io.h"
 #include "mutable_array_sequence.h"
 #include "immutable_array_sequence.h"
 #include "mutable_list_sequence.h"

@@ -95,28 +95,44 @@ namespace lab2
 
         DynamicArray<T>& operator=(const DynamicArray<T>& other)
         {
+            // Защита от присваивания объекта самому себе:
+            // array = array;
             if (this == &other)
             {
                 return *this;
             }
+
+            T* new_data = nullptr;
+
+            // Сначала создаём и заполняем новый массив.
+            if (other.size_ > 0)
+            {
+                new_data = new T[other.size_];
+
+                try
+                {
+                    std::copy(
+                        other.data_,
+                        other.data_ + other.size_,
+                        new_data
+                    );
+                }
+                catch (...)
+                {
+                    // Если копирование элементов не удалось, освобождаем новый буфер.
+                    delete[] new_data;
+
+                    // Старый массив текущего объект без изменений.
+                    throw;
+                }
+            }
+
+            // Старую память удаляем, как новый массив создан и заполнен.
             delete[] data_;
+
+            data_ = new_data;
             size_ = other.size_;
-            if (size_ == 0)
-            {
-                data_ = nullptr;
-                return *this;
-            }
-            data_ = new T[size_];
-            try
-            {
-                std::copy(other.data_, other.data_ + size_, data_);
-            }
-            catch (...)
-            {
-                data_ = nullptr;
-                size_ = 0;
-                throw;
-            }
+
             return *this;
         }
 
@@ -155,23 +171,41 @@ namespace lab2
         {
             if (new_size < 0)
             {
-                throw InvalidOperationException("Размер массива не может быть отрицательным");
+                throw InvalidOperationException(
+                    "Размер массива не может быть отрицательным"
+                );
             }
             if (new_size == size_)
             {
                 return;
             }
-
             T* new_data = nullptr;
+
             if (new_size > 0)
             {
                 new_data = new T[new_size]();
-            }
 
-            if (data_ != nullptr && new_data != nullptr)
-            {
-                int copy_count = std::min(size_, new_size);
-                std::copy(data_, data_ + copy_count, new_data);
+                const int copy_count =
+                    std::min(size_, new_size);
+                try
+                {
+                    if (copy_count > 0)
+                    {
+                        std::copy(
+                            data_,
+                            data_ + copy_count,
+                            new_data
+                        );
+                    }
+                }
+                catch (...)
+                {
+                    // При ошибке копирования освобождаем новый массив, который ещё не стал data_.
+                    delete[] new_data;
+
+                    // Старые data_ и size_ не изменялись.
+                    throw;
+                }
             }
             delete[] data_;
 
